@@ -5,11 +5,18 @@ const path = require("path");
 const app = express();
 const port = 5000;
 const fs = require("fs");
+var pdf2img = require('pdf-img-convert');
+var bodyParser = require('body-parser');
+
+
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/image", express.static("image")); 
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
+app.use(bodyParser.json());
+
 
 let imageName = "";  
 const storage = multer.diskStorage({
@@ -31,10 +38,19 @@ app.post("/upload-image", (req, res) => {
 	if (err) {
 	  console.log(err);
 	} else {
+		var outputImages1 = pdf2img.convert(req.file.path);
+		var name=imageName.slice(0, -4)
+		outputImages1.then(function(outputImages) {
+			fs.writeFile(path.join("./image/")+name+".png", outputImages[0], function (error) {
+			  if (error) { console.error("Error: " + error); }
+			});
+		}).catch(error=>console.log(error));
 	  return res.status(201).json({ url: "http://localhost:5000/image/" + imageName , imageName:imageName});
 	}
   });
 });
+
+
 
 app.delete("/delete-image/:imagename", (req, res) => {
   if (!req.params.imagename){
@@ -53,6 +69,8 @@ app.delete("/delete-image/:imagename", (req, res) => {
 		});
 	  };
 });
+
+
 
 app.listen(port, () => {
   console.log("server run in port", port);
